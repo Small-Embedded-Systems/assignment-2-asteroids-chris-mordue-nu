@@ -1,7 +1,9 @@
 /* Asteroids
-    Sample solution for assignment
     Semester 2 -- Small Embedded Systems
-    Dr Alun Moon
+		
+		NAME - ID
+    Zachary Atkinson - w15009651
+		Christopher Mordue - w15008624
 */
 
 /* C libraries */
@@ -22,49 +24,85 @@
 
 /* Game state */
 float elapsed_time; 
-int   score;
-int   lives;
+int score = 0;
+int lives = 5;
+int shieldLevel = 3;
+bool paused = true;
+bool runGame = false;
 struct ship player;
 
 float Dt = 0.01f;
 
 Ticker model, view, controller;
 
-bool paused = true;
 /* The single user button needs to have the PullUp resistor enabled */
 DigitalIn userbutton(P2_10,PullUp);
-int main()
-{
 
+// Private functions
+void pause(void);
+void stopGame(void);
+
+int main() {
+	
+		// Sets the ships initial position
+		player.x = 240;
+		player.y = 136;
+	
+		// Initializes the arrays to store the missile, and asteroid structs
+		initMissiles();
+		initAsteroids();
+	
+		// Initializes the double buffer
     init_DBuffer();
+	
+		// Attached the function to be fired and the time interval to the ticker object
+		view.attach( draw, 0.025);
+		model.attach( physics, Dt);
+		controller.attach( controls, 0.1);
+	
+		// Slight delay to allow content on the screen on start up
+		wait_ms(50);
     
+		// Main game loop
+		while (true) {
+			
+			// If game over / life over paused will be true
+			if (paused == true) {
+				pause();
+			}
+			
+			// If rungame is true, then vital functions are attached to ticker objects
+			if (runGame == true) {
+				view.attach( draw, 0.025); // The users display
+				model.attach( physics, Dt); // The models used currently in game
+				controller.attach( controls, 0.1); // The users controls e.g. Joystick
+				runGame = false;
+			}
+			
+		}
+		
+}
 
-    view.attach( draw, 0.025);
-    model.attach( physics, Dt);
-    controller.attach( controls, 0.1);
-    
-    lives = 5;
-    
-    /* Pause to start */
-    while( userbutton.read() ){ /* remember 1 is not pressed */
-        paused=true;
-        wait_ms(100);
-    }
-    paused = false;
-    
-    while(true) {
-        /* do one of */
-        /* Wait until all lives have been used
-        while(lives>0){
-            // possibly do something game related here
-            wait_ms(200);
-        }
-        */
-        /* Wait until each life is lost
-        while( inPlay ){
-            // possibly do something game related here
-            wait_ms(200);
-        }
-        */
-    }
+// When called will run a loop that will only be resolved once the user presses the button
+void pause(void) {
+	
+	stopGame();
+	
+	/* Button needs to be pressed to start the game, however on the testing board
+		 it seems to start on its own after a few seconds.
+	*/
+	while( userbutton.read() ){
+		paused = true;
+    wait_ms(100);
+  }
+	
+	paused = false;
+	runGame = true;
+}
+
+// Removes the functions attached to tickers, stopping the game from functioning
+void stopGame(void) {
+	view.detach();
+	model.detach();
+	controller.detach();
 }
